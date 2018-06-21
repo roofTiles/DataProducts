@@ -1,0 +1,34 @@
+---
+title: "Mortality Rates from Heart Disease per 100,000 population in the United States in 2014"
+author: "Tejas Guha"
+date: "June 19, 2018"
+output: html_document
+---
+Created using data from the CDC on Data.gov.  Link below.
+https://catalog.data.gov/dataset/heart-disease-mortality-data-among-us-adults-35-by-state-territory-and-county-5fb7c
+```{r, eval=TRUE, echo=FALSE, message=FALSE, width = 100, height = 100}
+library(dplyr)
+library(leaflet)
+library(geojsonio)
+library(geojson)
+cardio = read.csv("D:\\r\\data_products\\Heart_Disease_Mortality_Data_Among_US_Adults__35___by_State_Territory_and_County.csv")
+cardio$Stratification1 = as.character(cardio$Stratification1)
+cardio$Stratification2 = as.character(cardio$Stratification2)
+cardio = filter(cardio, Stratification1=="Overall", Stratification2=="Overall", GeographicLevel=="County")
+cardio$LocationID = lapply(cardio$LocationID, function(x) paste("0500000US", 
+                            ifelse(nchar(toString(x)) < 5, paste("0",toString(x), sep=""), toString(x)), sep =""))
+
+counties <- geojsonio::geojson_read("D:\\r\\data_products\\counties.json", what = "sp")
+counties$cardio = as.numeric(lapply(counties$GEO_ID, function(x){
+  value = filter(cardio, LocationID == x)$Data_Value
+  return(ifelse(is.na(value) || length(value) == 0, 0, value))
+  }))
+counties$locationName = lapply(counties$GEO_ID, function(x) {
+  row = filter(cardio, LocationID == x)
+  location = paste0(row$LocationDesc, ", ", row$LocationAbbr)
+  return(htmltools::HTML(sprintf("<strong>%s</strong><br/>%g deaths per 100,000", location, row$Data_Value)))
+  })
+pal <- colorNumeric("YlOrRd", domain = counties$cardio)
+graph = leaflet(counties, width=900, height=500) %>% addTiles() %>% addPolygons(weight=1, color="#FFFFFF", fillColor=~pal(counties$cardio), fillOpacity=1, label=counties$locationName, highlight = highlightOptions(weight = 5,color = "#000",fillOpacity = 1,bringToFront = TRUE)) %>% addLegend(pal=pal, values=~counties$cardio, position="topright", na.label = "", title="Mortality Rates", opacity=0.8) %>% setView(lat=39, lng=-98, zoom=4)
+graph
+```
