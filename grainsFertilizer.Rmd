@@ -13,12 +13,14 @@ actualData = read.csv("D:\\r\\data_products\\WDI_csv\\WDIData.csv")
 countryData = read.csv("D:\\r\\data_products\\WDI_csv\\WDICountry.csv")
 countryData = countryData[which(countryData$Region != ""),]
 countryData = countryData[order(countryData$Short.Name),]
-actualData = actualData[which(actualData$Country.Code %in% countryData$ï..Country.Code),]
+colnames(countryData)[1] = "Country.Name"
+colnames(actualData)[1] = "Country.Name"
+actualData = actualData[which(actualData$Country.Code %in% countryData$Country.Name),]
 cerealProduction = actualData[which(actualData$Indicator.Code == "AG.YLD.CREL.KG"), c(1:2,47:59)]
 cerealProduction = gather(cerealProduction, "Year", "Grains", 3:15)
 fertilizer = actualData[which(actualData$Indicator.Code == "AG.CON.FERT.ZS"), c(1:2, 47:59)]
 fertilizer = gather(fertilizer, "Year", "Fertilizer", 3:15)
-data = merge(fertilizer, cerealProduction, by=c("ï..Country.Name", "Country.Code", "Year"))
+data = merge(fertilizer, cerealProduction, by=c("Country.Name", "Country.Code", "Year"))
 names(data) = c("Short.Name", "Country.Code", "Year", "Fertilizer","Grains")
 data$Year = as.numeric(lapply(data$Year, function(x){return(substring(toString(x), 2))}))
 data = merge(data, countryData[,c(2,8)], by="Short.Name")
